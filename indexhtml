@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SQL & Python Interview Environment</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
+
+    <!-- Pyodide (Python Interpreter) - Necessary for real execution -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #e5e7eb; }
+
+        .CodeMirror {
+            font-size: 14px;
+            height: 300px;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+        }
+
+        #sql-results-output table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        #sql-results-output th, #sql-results-output td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        #sql-results-output th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .tab-content { min-height: 360px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div id="app" class="max-w-7xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10">
+
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center pb-4 border-b border-gray-200 mb-6">
+            <h1 class="text-3xl font-extrabold text-gray-800">GDTC Tech Interview Playground</h1>
+            <div id="user-info" class="text-sm font-medium text-gray-500 mt-2 md:mt-0">
+                <span id="userIdDisplay" class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full shadow-sm hidden"></span>
+            </div>
+        </header>
+
+        <!-- Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <div class="lg:col-span-1 bg-gray-50 p-6 rounded-lg shadow-inner">
+                <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clip-rule="evenodd" />
+                    </svg>Database Schema
+                </h2>
+                <div id="schema-details" class="space-y-4 text-sm text-gray-700 overflow-y-auto max-h-[70vh]">
+                    <!-- Schema will be injected here -->
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="flex border-b border-gray-200 mb-4">
+                    <button id="tab-python" data-target="python-tab" class="tab-button px-4 py-2 text-base font-semibold border-b-2 border-indigo-500 text-indigo-600 transition duration-150">Python Code</button>
+                    <button id="tab-sql" data-target="sql-tab" class="tab-button px-4 py-2 text-base font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition duration-150">SQL Query</button>
+                </div>
+
+                <div id="python-tab" class="tab-content" style="display:block">
+                    <textarea id="python-editor-textarea" style="display:none">
+def find_max(arr):
+    # Write your Python code here
+    return max(arr)
+
+# Example call
+print("The max value is:", find_max([10, 5, 20, 8]))
+                    </textarea>
+
+                    <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <button id="run-python-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 transition duration-150" disabled>
+                            <span id="python-btn-text">Initializing Python...</span>
+                        </button>
+                        <span id="python-loading-indicator" class="text-sm text-gray-500">Please wait...</span>
+                    </div>
+                </div>
+
+                <div id="sql-tab" class="tab-content" style="display:none">
+                    <textarea id="sql-editor-textarea" style="display:none">
+-- SELECT statements return data tables
+SELECT S.name, C.cname, E.grade
+FROM Students S
+JOIN Enrollments E ON S.sid = E.sid
+JOIN Courses C ON E.cid = C.cid
+WHERE S.dept = 'CSE';
+                    </textarea>
+
+                    <div class="mt-4">
+                        <button id="run-sql-btn" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition duration-150">Run SQL Query</button>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h2 class="text-xl font-bold text-gray-700 mb-3">Output Console</h2>
+                    <div id="output-console" class="bg-gray-900 p-4 rounded-lg text-white text-sm whitespace-pre-wrap shadow-lg overflow-auto max-h-64">Awaiting Python engine initialization...</div>
+                    <div id="sql-results-output" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CodeMirror JS Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
+
+    <!-- AlaSQL (In-memory SQL Database) -->
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7.3/dist/alasql.min.js"></script>
+
+    <!-- Application Logic (module script) -->
+    <script type="module">
+        // Firebase modular SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"; // Optional: setLogLevel('debug')
+
+        // Globals for editors, python, & firebase
+        let pythonEditor = null;
+        let sqlEditor = null;
+        let pyodide = null; // Pyodide instance
+        let pythonOutput = ''; // Buffer for Python print statements
+
+        let db = null;
+        let auth = null;
+        let userId = null;
+        let isAuthReady = false;
+
+        // App-level configuration (set these from your environment if needed)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-interview-app';
+        const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Utility: Firestore doc reference for session
+        const getSessionDocRef = (uid) => {
+            if (!db) throw new Error("Firestore not initialized");
+            const path = `artifacts/${appId}/users/${uid}/interview_session/latest_activity`;
+            return doc(db, path);
+        };
+
+        // --- Output helpers ---
+        const updateOutput = (content, isError = false) => {
+            const consoleEl = document.getElementById('output-console');
+            consoleEl.textContent = content;
+            consoleEl.className = isError
+                ? 'bg-red-800 p-4 rounded-lg text-white text-sm whitespace-pre-wrap shadow-lg overflow-auto max-h-64 mt-8'
+                : 'bg-gray-900 p-4 rounded-lg text-white text-sm whitespace-pre-wrap shadow-lg overflow-auto max-h-64 mt-8';
+            // clear SQL results only on non-select error or explicit clear
+            if (isError || !content.startsWith('Query executed')) {
+                document.getElementById('sql-results-output').innerHTML = '';
+            }
+        };
+
+        const updatePythonButtonState = (text, disabled) => {
+            const btn = document.getElementById('run-python-btn');
+            const textSpan = document.getElementById('python-btn-text');
+            const noteEl = document.getElementById('python-loading-indicator');
+            
+            if (textSpan) textSpan.textContent = text;
+            if (btn) btn.disabled = disabled;
+            if (noteEl) {
+                noteEl.textContent = disabled && text.includes('Loading') ? "Please wait, downloading Python modules..." : "Python code executes directly in the browser.";
+                noteEl.className = disabled ? "text-sm text-orange-500" : "text-sm text-gray-500";
+            }
+        };
+
+        const renderSqlTable = (data) => {
+            const outputEl = document.getElementById('sql-results-output');
+            outputEl.innerHTML = ''; // clear
+
+            if (!data || data.length === 0) {
+                updateOutput("Query executed successfully. (0 rows returned)", false);
+                return;
+            }
+
+            // columns
+            const columns = Object.keys(data[0]);
+            let html = `<table><thead><tr>`;
+            columns.forEach(c => html += `<th>${c}</th>`);
+            html += `</tr></thead><tbody>`;
+            data.forEach(row => {
+                html += `<tr>`;
+                columns.forEach(c => {
+                    html += `<td>${String(row[c] ?? '')}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            outputEl.innerHTML = html;
+            updateOutput(`Query executed successfully. (${data.length} rows returned)`, false);
+        };
+        
+        // --- Pyodide (Python Execution) Setup ---
+
+        // Function to capture Python's stdout and stderr
+        const capturePythonOutput = (msg) => {
+            pythonOutput += msg;
+        };
+
+        const initPyodide = async () => {
+            updatePythonButtonState("Loading Python engine...", true);
+            try {
+                // Pyodide loads the interpreter and necessary files
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/",
+                });
+
+                // Set up stream redirection for print() and errors
+                pyodide.globals.set("py_print_func", capturePythonOutput);
+                
+                // Python code to redirect stdout/stderr to our JS function
+                pyodide.runPython(`
+                    import sys
+                    class PyOutputRedirect:
+                        def write(self, s):
+                            # The s includes newlines, which we handle in JS
+                            py_print_func(s)
+                        def flush(self):
+                            pass # Ignore flush calls
+
+                    sys.stdout = PyOutputRedirect()
+                    sys.stderr = PyOutputRedirect()
+                `);
+
+                updatePythonButtonState("Run Python Code", false);
+                console.log("Pyodide: Python interpreter ready.");
+            } catch (err) {
+                updateOutput(`Python Initialization Error: ${err.message}. Python execution disabled.`, true);
+                updatePythonButtonState("Python Failed to Load", true);
+                console.error("Pyodide init error:", err);
+            }
+        };
+
+        const runPythonCode = async (code) => {
+            if (!pyodide) {
+                updateOutput("Python environment is not ready. Please refresh the page if initialization failed.", true);
+                return;
+            }
+
+            // Reset buffer and output
+            pythonOutput = '';
+            updateOutput("Executing Python code...", false);
+            document.getElementById('sql-results-output').innerHTML = ''; // Clear SQL results
+
+            const btn = document.getElementById('run-python-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Executing...";
+
+            try {
+                const start = performance.now();
+                // Execute Python code asynchronously
+                await pyodide.runPythonAsync(code);
+                const elapsed = Math.round(performance.now() - start);
+
+                const finalOutput = `Execution successful in ${elapsed}ms.\n\n--- Output ---\n${pythonOutput.trim()}`;
+                
+                updateOutput(finalOutput, false);
+            } catch (err) {
+                // If there's a Python error, it will be included in the err object and/or pythonOutput
+                const errorMsg = pythonOutput.trim() + '\n' + String(err);
+                updateOutput(`Python Execution Error:\n\n${errorMsg.trim()}`, true);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        // --- Database setup using AlaSQL (in-memory) ---
+        const setupDatabase = () => {
+            const alasqlRef = window.alasql;
+            if (!alasqlRef) {
+                console.error("AlaSQL not found.");
+                updateOutput("Database setup failed: AlaSQL not loaded.", true);
+                return;
+            }
+
+            const schema = `
+                DROP TABLE IF EXISTS Students;
+                DROP TABLE IF EXISTS Courses;
+                DROP TABLE IF EXISTS Enrollments;
+                DROP TABLE IF EXISTS Attendance;
+
+                CREATE TABLE Students (sid INT, name VARCHAR(100), dept VARCHAR(10), year INT, cgpa DECIMAL(3,2));
+                CREATE TABLE Courses (cid INT, cname VARCHAR(100), dept VARCHAR(10), credits INT);
+                CREATE TABLE Enrollments (eid INT, sid INT, cid INT, semester VARCHAR(10), grade VARCHAR(2));
+                CREATE TABLE Attendance (aid INT, sid INT, cid INT, att_date DATE, present BOOLEAN);
+            `;
+            const dataStatements = [
+                "INSERT INTO Students (sid, name, dept, year, cgpa) VALUES (1, 'Anita', 'CSE', 2, 8.50), (2, 'Bharat', 'ECE', 3, 7.80), (3, 'Chitra', 'CSE', 4, 9.10), (4, 'Deepak', 'ME', 1, 7.20), (5, 'Esha', 'EE', 2, 8.90), (6, 'Farhan', 'CSE', 3, 6.80);",
+                "INSERT INTO Courses (cid, cname, dept, credits) VALUES (1, 'DBMS', 'CSE', 4), (2, 'Data Structures', 'CSE', 3), (3, 'Circuits', 'ECE', 4), (4, 'Thermodynamics', 'ME', 3), (5, 'Signals', 'ECE', 3);",
+                "INSERT INTO Enrollments (eid, sid, cid, semester, grade) VALUES (1, 1, 1, '2024-ODD', 'A'), (2, 1, 2, '2024-ODD', 'B'), (3, 2, 3, '2024-ODD', 'B'), (4, 2, 5, '2024-ODD', 'A'), (5, 3, 1, '2024-ODD', 'A+'), (6, 3, 2, '2024-ODD', 'A'), (7, 4, 4, '2024-ODD', 'C'), (8, 5, 3, '2024-ODD', 'A'), (9, 6, 1, '2024-ODD', 'B');",
+                "INSERT INTO Attendance (aid, sid, cid, att_date, present) VALUES (1, 1, 1, '2024-08-01', TRUE), (2, 1, 1, '2024-08-02', TRUE), (3, 1, 1, '2024-08-03', FALSE), (4, 3, 1, '2024-08-01', TRUE), (5, 3, 1, '2024-08-02', FALSE), (6, 3, 1, '2024-08-03', TRUE), (7, 6, 1, '2024-08-01', FALSE), (8, 6, 1, '2024-08-02', FALSE), (9, 6, 1, '2024-08-03', FALSE);"
+            ];
+
+            try {
+                // Use exec to run multiple statements (schema creation/drop)
+                window.alasql.exec(schema);
+                // Insert sample data
+                dataStatements.forEach(q => window.alasql.exec(q));
+                console.log("AlaSQL: DB initialized.");
+            } catch (err) {
+                console.error("AlaSQL init error:", err);
+                updateOutput("SQL Error: Failed to initialize database.", true);
+            }
+        };
+
+        // --- Firebase & Auth initialization ---
+        const initFirebase = async () => {
+            if (!firebaseConfig) {
+                console.warn("Firebase config not provided. Skipping firestore persistence.");
+                return { enabled: false };
+            }
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Sign in
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Wait for onAuthStateChanged to provide a user
+                return new Promise((resolve, reject) => {
+                    const unsub = onAuthStateChanged(auth, user => {
+                        if (user) {
+                            userId = user.uid;
+                            isAuthReady = true;
+                            document.getElementById('userIdDisplay').textContent = `Session ID: ${userId}`;
+                            document.getElementById('userIdDisplay').classList.remove('hidden');
+                            unsub();
+                            resolve({ enabled: true, uid: userId });
+                        } else {
+                            unsub();
+                            resolve({ enabled: false });
+                        }
+                    }, (err) => {
+                        console.error("Auth state error:", err);
+                        reject(err);
+                    });
+                });
+
+            } catch (err) {
+                console.error("Firebase init/auth error:", err);
+                return { enabled: false };
+            }
+        };
+
+        // Persistence (Save + Snapshot)
+        let saveTimeout = null;
+        const DEBOUNCE_DELAY = 1000;
+        const saveCodeToFirestore = () => {
+            if (!isAuthReady || !userId || !db) return;
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                try {
+                    const docRef = getSessionDocRef(userId);
+                    await setDoc(docRef, {
+                        pythonCode: pythonEditor ? pythonEditor.getValue() : '',
+                        sqlQuery: sqlEditor ? sqlEditor.getValue() : '',
+                        lastUpdate: new Date().toISOString()
+                    }, { merge: true });
+                    console.log("Session saved.");
+                } catch (err) {
+                    console.error("Save error:", err);
+                }
+            }, DEBOUNCE_DELAY);
+        };
+
+        const setupPersistence = () => {
+            if (!isAuthReady || !userId || !db) return;
+            try {
+                const docRef = getSessionDocRef(userId);
+                onSnapshot(docRef, (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (pythonEditor && data.pythonCode && data.pythonCode !== pythonEditor.getValue()) {
+                        pythonEditor.setValue(data.pythonCode);
+                    }
+                    if (sqlEditor && data.sqlQuery && data.sqlQuery !== sqlEditor.getValue()) {
+                        sqlEditor.setValue(data.sqlQuery);
+                    }
+                }, (err) => {
+                    console.error("Snapshot listener error:", err);
+                });
+            } catch (err) {
+                console.error("Persistence setup error:", err);
+            }
+        };
+
+        // --- CodeMirror setup ---
+        const initCodeEditors = () => {
+            const pyTA = document.getElementById('python-editor-textarea');
+            const sqlTA = document.getElementById('sql-editor-textarea');
+            if (!pyTA || !sqlTA) {
+                console.error("Editor textareas not found.");
+                return;
+            }
+
+            pythonEditor = CodeMirror.fromTextArea(pyTA, {
+                mode: "python",
+                lineNumbers: true,
+                matchBrackets: true,
+                theme: "default"
+            });
+
+            sqlEditor = CodeMirror.fromTextArea(sqlTA, {
+                mode: "text/x-sql",
+                lineNumbers: true,
+                matchBrackets: true,
+                theme: "default"
+            });
+
+            // Save on changes
+            pythonEditor.on('change', () => saveCodeToFirestore());
+            sqlEditor.on('change', () => saveCodeToFirestore());
+        };
+
+        // --- UI handlers ---
+        const wireUiHandlers = () => {
+            // Tab switching
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                    document.querySelectorAll('.tab-button').forEach(b => {
+                        b.classList.remove('border-indigo-500', 'text-indigo-600');
+                        b.classList.add('border-transparent', 'text-gray-500');
+                    });
+
+                    document.getElementById(targetId).style.display = 'block';
+                    button.classList.add('border-indigo-500', 'text-indigo-600');
+                    button.classList.remove('border-transparent', 'text-gray-500');
+
+                    // refresh editors if present
+                    if (pythonEditor && targetId === 'python-tab') pythonEditor.refresh();
+                    if (sqlEditor && targetId === 'sql-tab') sqlEditor.refresh();
+                });
+            });
+
+            // Run Python (Real Execution via Pyodide)
+            document.getElementById('run-python-btn').addEventListener('click', () => {
+                const code = pythonEditor ? pythonEditor.getValue() : document.getElementById('python-editor-textarea').value;
+                runPythonCode(code);
+            });
+
+            // Run SQL
+            document.getElementById('run-sql-btn').addEventListener('click', () => {
+                const query = sqlEditor ? sqlEditor.getValue().trim() : document.getElementById('sql-editor-textarea').value.trim();
+                if (!query) {
+                    updateOutput("Please enter an SQL query to execute.", true);
+                    return;
+                }
+
+                try {
+                    if (!window.alasql) throw new Error("AlaSQL engine unavailable.");
+                    const start = performance.now();
+
+                    const result = window.alasql.exec(query);
+
+                    const elapsed = Math.round(performance.now() - start);
+
+                    // SELECT returns array of objects
+                    if (Array.isArray(result) && (result.length === 0 || typeof result[0] === 'object')) {
+                        renderSqlTable(result);
+                    } else if (typeof result === 'number') {
+                        updateOutput(`Query executed successfully in ${elapsed}ms. ${result} rows affected.`, false);
+                    } else {
+                        // null/undefined or other types
+                        updateOutput(`Query executed successfully in ${elapsed}ms. Result: ${JSON.stringify(result)}`, false);
+                    }
+                } catch (err) {
+                    updateOutput(`SQL Execution Error: ${err.message}`, true);
+                }
+            });
+        };
+
+        // Inject schema HTML
+        const injectSchema = () => {
+            const schemaHtml = `
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Students</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        sid (INT, PK), name (VARCHAR), dept (VARCHAR), year (INT), cgpa (DECIMAL)
+                    </code>
+                </div>
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Courses</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        cid (INT, PK), cname (VARCHAR), dept (VARCHAR), credits (INT)
+                    </code>
+                </div>
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Enrollments</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        eid (INT, PK), sid (INT, FK), cid (INT, FK), semester (VARCHAR), grade (VARCHAR)
+                    </code>
+                </div>
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Attendance</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        aid (INT, PK), sid (INT, FK), cid (INT, FK), att_date (DATE), present (BOOLEAN)
+                    </code>
+                </div>
+                <p class="mt-4 text-xs italic text-gray-400">Sample data for all tables has been pre-loaded.</p>
+            `;
+            document.getElementById('schema-details').innerHTML = schemaHtml;
+        };
+
+        // --- Application startup sequence ---
+        (async function startApp() {
+            try {
+                // 1. Initial UI and local database setup
+                injectSchema();
+                setupDatabase(); 
+                
+                // 2. Load Python Interpreter (Pyodide)
+                await initPyodide();
+
+                // 3. Initialize Editors and UI handlers
+                initCodeEditors();
+                wireUiHandlers();
+
+                // 4. Initialize Firebase (Auth & Persistence)
+                const fb = await initFirebase(); 
+
+                // 5. Set up persistence if authentication is available
+                if (fb && fb.enabled) {
+                    setupPersistence();
+                    // Save initial content once so there's a baseline
+                    saveCodeToFirestore();
+                } else {
+                    console.log("Firestore persistence disabled.");
+                }
+            } catch (err) {
+                console.error("Startup error:", err);
+                updateOutput("Application startup error: " + err.message, true);
+            }
+        })();
+
+    </script>
+</body>
+</html>
