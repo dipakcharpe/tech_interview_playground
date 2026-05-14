@@ -1,32 +1,36 @@
-export function logToConsole(msg, isError = false) {
-    const consoleEl = document.getElementById('console');
-    consoleEl.textContent += `\n${msg}`;
-    consoleEl.style.color = isError ? '#f87171' : '#34d399';
-}
+export const terminal = (msg, isErr = false) => {
+    const el = document.getElementById('console');
+    const time = new Date().toLocaleTimeString([], { hour12: false });
+    el.innerHTML += `<div class="${isErr ? 'text-red-400' : ''}"><span class="text-slate-600 mr-2">[${time}]</span>${msg}</div>`;
+    el.scrollTop = el.scrollHeight;
+};
 
-// Tab Switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-white'));
-        btn.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-white');
-        
-        const isPython = btn.id === 'tab-python';
-        document.getElementById('python-area').classList.toggle('hidden', !isPython);
-        document.getElementById('sql-area').classList.toggle('hidden', isPython);
-    });
-});
+// Tab Logic
+document.getElementById('btn-python').onclick = () => {
+    document.getElementById('btn-python').className = 'px-8 py-4 text-sm font-bold tab-active transition-all';
+    document.getElementById('btn-sql').className = 'px-8 py-4 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all';
+    document.getElementById('python-container').classList.remove('hidden');
+    document.getElementById('sql-container').classList.add('hidden');
+    // We will trigger a refresh via a custom event later or rely on the editor.js
+    window.dispatchEvent(new Event('refreshEditors'));
+};
 
-// Share Button Logic
-document.getElementById('share-session').addEventListener('click', () => {
+document.getElementById('btn-sql').onclick = () => {
+    document.getElementById('btn-sql').className = 'px-8 py-4 text-sm font-bold tab-active transition-all';
+    document.getElementById('btn-python').className = 'px-8 py-4 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all';
+    document.getElementById('sql-container').classList.remove('hidden');
+    document.getElementById('python-container').classList.add('hidden');
+    window.dispatchEvent(new Event('refreshEditors'));
+};
+
+document.getElementById('clear-console').onclick = () => {
+    document.getElementById('console').innerHTML = '';
+    document.getElementById('sql-output').innerHTML = '';
+};
+
+document.getElementById('copy-link').onclick = () => {
     navigator.clipboard.writeText(window.location.href);
-    alert('Invite link copied to clipboard! Share this with the candidate.');
-});
-
-// Add this to your existing js/ui.js
-export function logToConsole(msg, isError = false) {
-    const consoleEl = document.getElementById('console');
-    const timestamp = new Date().toLocaleTimeString([], { hour12: false });
-    consoleEl.textContent += `\n[${timestamp}] ${msg}`;
-    consoleEl.style.color = isError ? '#f87171' : '#34d399';
-    consoleEl.scrollTop = consoleEl.scrollHeight; // Auto-scroll to bottom
-}
+    const btn = document.getElementById('copy-link');
+    btn.innerText = "Copied!";
+    setTimeout(() => btn.innerText = "Invite Candidate", 2000);
+};

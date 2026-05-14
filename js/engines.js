@@ -1,111 +1,58 @@
-import { logToConsole } from './ui.js';
-import { pythonEditor, sqlEditor } from './editor.js';
+import { terminal } from './ui.js';
+import { pyEditor, sqlEditor } from './editor.js';
 
-let pyodide = null;
-let dbInstance = null;
+let pyodide, db;
 
-// --- Python Engine Setup ---
-async function initPython() {
-    const btn = document.getElementById('run-python');
+async function loadEngines() {
     try {
-        pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/"
-        });
-        btn.innerText = "Run Python Code";
-        btn.disabled = false;
-        logToConsole("Python 3.10 Engine Ready.");
-    } catch (err) {
-        logToConsole("Python Init Error: " + err.message, true);
-    }
-}
-
-// --- SQL Engine Setup ---
-async function initSql() {
-    try {
-        const SQL = await initSqlJs({
-            locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
-        });
-        dbInstance = new SQL.Database();
+        pyodide = await loadPyodide();
+        terminal("Python engine online.");
         
-        // Load Default Schema
-        const schema = `
-            CREATE TABLE Students (id INT, name TEXT, dept TEXT, cgpa REAL);
-            INSERT INTO Students VALUES (1, 'Anita', 'CSE', 8.5), (2, 'Bharat', 'ECE', 7.8);
-            CREATE TABLE Courses (id INT, name TEXT, credits INT);
-            INSERT INTO Courses VALUES (101, 'DBMS', 4), (102, 'Python', 3);
-        `;
-        dbInstance.exec(schema);
-        injectSchemaUI();
-        logToConsole("SQLite Engine Ready.");
-    } catch (err) {
-        logToConsole("SQL Init Error: " + err.message, true);
-    }
+        const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}` });
+        db = new SQL.Database();
+        db.run("CREATE TABLE Interviewees (id INT, name TEXT, role TEXT, score INT);");
+        db.run("INSERT INTO Interviewees VALUES (1, 'Deepak', 'Engineer', 95), (2, 'Candidate', 'Data Scientist', 88);");
+        terminal("SQL engine online.");
+
+        document.getElementById('schema-area').innerHTML = `
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg shadow-sm">
+                <div class="text-xs font-bold text-emerald-600 mb-1">Interviewees</div>
+                <div class="text-[10px] font-mono text-slate-500">id(INT), name(TEXT), role(TEXT), score(INT)</div>
+            </div>`;
+    } catch (e) { terminal("Load error: " + e.message, true); }
 }
 
-function injectSchemaUI() {
-    const schemaHtml = `
-        <div class="p-2 bg-slate-50 border rounded mb-2">
-            <p class="font-bold text-slate-700">Students</p>
-            <p class="text-[10px] text-slate-500 font-mono">id(INT), name(TEXT), dept(TEXT), cgpa(REAL)</p>
-        </div>
-        <div class="p-2 bg-slate-50 border rounded">
-            <p class="font-bold text-slate-700">Courses</p>
-            <p class="text-[10px] text-slate-500 font-mono">id(INT), name(TEXT), credits(INT)</p>
-        </div>
-    `;
-    document.getElementById('schema-details').innerHTML = schemaHtml;
-}
-
-// --- Execution Logic ---
-document.getElementById('run-python').addEventListener('click', async () => {
-    const code = pythonEditor.getValue();
-    logToConsole(">>> Running Python...");
+document.getElementById('run-python').onclick = async () => {
+    terminal("Running Python script...");
     try {
-        // Redirect Python stdout to our console
-        pyodide.runPython(`
-            import sys
-            import io
-            sys.stdout = io.stringIO()
-        `);
-        await pyodide.runPythonAsync(code);
-        const stdout = pyodide.runPython("sys.stdout.getvalue()");
-        logToConsole(stdout || "Execution finished (no output).");
-    } catch (err) {
-        logToConsole(err.message, true);
-    }
-});
+        const code = pyEditor.getValue();
+        const output = await pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+${code}
+sys.stdout.getvalue()`);
+        terminal(output || "Success: (No output)");
+    } catch (e) { terminal(e.message, true); }
+};
 
-document.getElementById('run-sql').addEventListener('click', () => {
-    const query = sqlEditor.getValue();
-    logToConsole(">>> Executing SQL...");
+document.getElementById('run-sql').onclick = () => {
+    terminal("Executing SQL query...");
     try {
-        const res = dbInstance.exec(query);
+        const res = db.exec(sqlEditor.getValue());
         if (res.length > 0) {
-            renderSqlTable(res[0]);
-            logToConsole(`Query successful: ${res[0].values.length} rows returned.`);
+            renderTable(res[0]);
+            terminal("Query returned " + res[0].values.length + " rows.");
         } else {
-            logToConsole("Query executed successfully.");
+            terminal("Success: Command executed.");
         }
-    } catch (err) {
-        logToConsole(err.message, true);
-    }
-});
+    } catch (e) { terminal(e.message, true); }
+};
 
-function renderSqlTable(data) {
-    const container = document.getElementById('sql-table');
-    let html = `<table class="min-w-full text-xs text-slate-300 border-collapse border border-slate-700 mt-2">
-        <thead><tr class="bg-slate-800 text-left">`;
-    data.columns.forEach(col => html += `<th class="p-2 border border-slate-700">${col}</th>`);
-    html += `</tr></thead><tbody>`;
-    data.values.forEach(row => {
-        html += `<tr>`;
-        row.forEach(val => html += `<td class="p-2 border border-slate-700">${val}</td>`);
-        html += `</tr>`;
-    });
-    html += `</tbody></table>`;
-    container.innerHTML = html;
+function renderTable(data) {
+    let h = `<table><thead><tr>${data.columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+    h += `<tbody>${data.values.map(r => `<tr>${r.map(v => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    document.getElementById('sql-output').innerHTML = h;
 }
 
-// Start engines
-initPython();
-initSql();
+loadEngines();

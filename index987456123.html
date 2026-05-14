@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>InterviewPad | Pro IDE</title>
+    
+    <!-- Reliable CSS CDNs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .CodeMirror { height: 450px; font-family: 'Fira Code', monospace; font-size: 14px; border-radius: 0 0 8px 8px; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
+        .tab-active { background: white !important; border-bottom: 2px solid #10b981 !important; color: #059669 !important; }
+        .sql-table table { width: 100%; border-collapse: collapse; color: #e2e8f0; font-size: 0.85rem; }
+        .sql-table th { background: #1e293b; text-align: left; padding: 12px; border: 1px solid #334155; color: #10b981; }
+        .sql-table td { padding: 10px; border: 1px solid #334155; background: #0f172a; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-6">
+            <h1 class="text-xl font-bold">Interview<span class="text-emerald-400">Pad</span></h1>
+            <div class="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+                <span id="status-dot" class="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+                <span id="status-text" class="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Connecting...</span>
+            </div>
+        </div>
+        <button id="copy-link" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all active:scale-95 shadow-lg shadow-emerald-900/20">
+            Invite Candidate
+        </button>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
+        
+        <!-- Sidebar -->
+        <aside class="col-span-12 lg:col-span-3">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sticky top-24">
+                <h3 class="text-xs font-black text-slate-400 mb-4 uppercase tracking-widest">Database Schema</h3>
+                <div id="schema-area" class="space-y-3">
+                    <div class="animate-pulse flex space-y-4 flex-col">
+                        <div class="h-10 bg-slate-100 rounded"></div>
+                        <div class="h-10 bg-slate-100 rounded"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Editor Section -->
+        <div class="col-span-12 lg:col-span-9 space-y-6">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                <div class="flex bg-slate-50 border-b border-slate-200">
+                    <button id="btn-python" class="px-8 py-4 text-sm font-bold tab-active transition-all">Python 3.10</button>
+                    <button id="btn-sql" class="px-8 py-4 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all">SQL Editor</button>
+                </div>
+                
+                <div id="python-container">
+                    <textarea id="python-editor"></textarea>
+                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                        <button id="run-python" class="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-800 disabled:opacity-50 transition-all shadow-lg">Run Python</button>
+                    </div>
+                </div>
+
+                <div id="sql-container" class="hidden">
+                    <textarea id="sql-editor"></textarea>
+                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                        <button id="run-sql" class="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-800 transition-all shadow-lg">Execute SQL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Console -->
+            <div class="bg-slate-900 rounded-xl shadow-2xl p-6 border border-slate-800">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black">Output Terminal</span>
+                    <button id="clear-console" class="text-xs text-slate-500 hover:text-white transition-colors">Clear Console</button>
+                </div>
+                <pre id="console" class="font-mono text-emerald-400 text-sm whitespace-pre-wrap overflow-y-auto max-h-[300px] leading-relaxed">System ready for initialization...</pre>
+                <div id="sql-output" class="sql-table mt-4 overflow-x-auto"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Core Dependencies (Scripts) -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+
+    <script type="module">
+        // Using ESM.sh instead of Skypack for better stability
+        import * as Y from 'https://esm.sh/yjs@13.6.1';
+        import { WebsocketProvider } from 'https://esm.sh/y-websocket@1.5.0';
+        import { CodemirrorBinding } from 'https://esm.sh/y-codemirror@3.0.1';
+
+        // Initialize Collaboration
+        const hash = window.location.hash.replace('#', '');
+        const roomName = hash || `interview-${Math.random().toString(36).substr(2, 9)}`;
+        if (!hash) window.location.hash = roomName;
+
+        const ydoc = new Y.Doc();
+        const provider = new WebsocketProvider('wss://demos.yjs.dev', roomName, ydoc);
+        const yPyText = ydoc.getText('python');
+        const ySqlText = ydoc.getText('sql');
+
+        // Setup Editors
+        const pyEditor = CodeMirror.fromTextArea(document.getElementById('python-editor'), {
+            mode: 'python', theme: 'dracula', lineNumbers: true, indentUnit: 4, lineWrapping: true
+        });
+        const sqlEditor = CodeMirror.fromTextArea(document.getElementById('sql-editor'), {
+            mode: 'text/x-sql', theme: 'dracula', lineNumbers: true, lineWrapping: true
+        });
+
+        // Collaborative Binding
+        new CodemirrorBinding(yPyText, pyEditor, provider.awareness);
+        new CodemirrorBinding(ySqlText, sqlEditor, provider.awareness);
+
+        // Terminal Logging
+        const terminal = (msg, isErr = false) => {
+            const el = document.getElementById('console');
+            const time = new Date().toLocaleTimeString([], { hour12: false });
+            el.innerHTML += `<div class="${isErr ? 'text-red-400' : ''}"><span class="text-slate-600 mr-2">[${time}]</span>${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+        };
+
+        provider.on('status', s => {
+            const dot = document.getElementById('status-dot');
+            dot.className = s.status === 'connected' ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-orange-500 animate-pulse';
+            document.getElementById('status-text').innerText = s.status === 'connected' ? 'Live Session Active' : 'Connecting...';
+        });
+
+        // Initialize Engines
+        let pyodide, db;
+        async function loadEngines() {
+            try {
+                pyodide = await loadPyodide();
+                terminal("Python engine online.");
+                
+                const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}` });
+                db = new SQL.Database();
+                db.run("CREATE TABLE Interviewees (id INT, name TEXT, role TEXT, score INT);");
+                db.run("INSERT INTO Interviewees VALUES (1, 'Deepak', 'Engineer', 95), (2, 'Candidate', 'Data Scientist', 88);");
+                terminal("SQL engine online.");
+
+                document.getElementById('schema-area').innerHTML = `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg shadow-sm">
+                        <div class="text-xs font-bold text-emerald-600 mb-1">Interviewees</div>
+                        <div class="text-[10px] font-mono text-slate-500">id(INT), name(TEXT), role(TEXT), score(INT)</div>
+                    </div>
+                `;
+            } catch (e) { terminal("Load error: " + e.message, true); }
+        }
+
+        // Executions
+        document.getElementById('run-python').onclick = async () => {
+            terminal("Running Python script...");
+            try {
+                const code = pyEditor.getValue();
+                // Simple redirect for stdout
+                const output = await pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+${code}
+sys.stdout.getvalue()
+                `);
+                terminal(output || "Success: (No output)");
+            } catch (e) { terminal(e.message, true); }
+        };
+
+        document.getElementById('run-sql').onclick = () => {
+            terminal("Executing SQL query...");
+            try {
+                const res = db.exec(sqlEditor.getValue());
+                if (res.length > 0) {
+                    renderTable(res[0]);
+                    terminal("Query returned " + res[0].values.length + " rows.");
+                } else {
+                    terminal("Success: Command executed.");
+                }
+            } catch (e) { terminal(e.message, true); }
+        };
+
+        function renderTable(data) {
+            let h = `<table><thead><tr>${data.columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+            h += `<tbody>${data.values.map(r => `<tr>${r.map(v => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+            document.getElementById('sql-output').innerHTML = h;
+        }
+
+        // UI Listeners
+        document.getElementById('btn-python').onclick = () => {
+            document.getElementById('btn-python').className = 'px-8 py-4 text-sm font-bold tab-active transition-all';
+            document.getElementById('btn-sql').className = 'px-8 py-4 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all';
+            document.getElementById('python-container').classList.remove('hidden');
+            document.getElementById('sql-container').classList.add('hidden');
+            pyEditor.refresh();
+        };
+
+        document.getElementById('btn-sql').onclick = () => {
+            document.getElementById('btn-sql').className = 'px-8 py-4 text-sm font-bold tab-active transition-all';
+            document.getElementById('btn-python').className = 'px-8 py-4 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all';
+            document.getElementById('sql-container').classList.remove('hidden');
+            document.getElementById('python-container').classList.add('hidden');
+            sqlEditor.refresh();
+        };
+
+        document.getElementById('copy-link').onclick = () => {
+            navigator.clipboard.writeText(window.location.href);
+            terminal("Invite link copied to clipboard.");
+            const oldText = document.getElementById('copy-link').innerText;
+            document.getElementById('copy-link').innerText = "Copied!";
+            setTimeout(() => document.getElementById('copy-link').innerText = oldText, 2000);
+        };
+
+        document.getElementById('clear-console').onclick = () => {
+            document.getElementById('console').innerHTML = '';
+            document.getElementById('sql-output').innerHTML = '';
+        };
+
+        loadEngines();
+    </script>
+</body>
+</html>
