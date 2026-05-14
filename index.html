@@ -3,86 +3,221 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>InterviewPad | Professional Environment</title>
+    <title>InterviewPad | Professional IDE</title>
+    
+    <!-- Professional Styling & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .CodeMirror {
+            height: 400px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            border-radius: 0 0 8px 8px;
+        }
+        .tab-active {
+            background: white;
+            border-bottom: 2px solid #10b981;
+            color: #059669;
+        }
+        #console::-webkit-scrollbar { width: 6px; }
+        #console::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .sql-table table { width: 100%; border-collapse: collapse; color: #e2e8f0; font-size: 0.8rem; }
+        .sql-table th { background: #1e293b; text-align: left; padding: 8px; border: 1px solid #334155; color: #10b981; }
+        .sql-table td { padding: 8px; border: 1px solid #334155; }
+    </style>
 </head>
-<body class="bg-slate-50 font-sans antialiased text-slate-900">
+<body class="bg-slate-100 min-h-screen">
+
     <!-- Header -->
-    <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center">
-        <div class="flex items-center gap-4">
-            <h1 class="text-xl font-bold border-r border-slate-700 pr-4">Interview<span class="text-emerald-400">Pad</span></h1>
-            <div id="status" class="text-xs uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                <span class="h-2 w-2 rounded-full bg-orange-500" id="status-dot"></span>
-                <span id="status-text">Connecting...</span>
+    <header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center">
+        <div class="flex items-center gap-6">
+            <h1 class="text-xl font-bold tracking-tight">Interview<span class="text-emerald-400">Pad</span></h1>
+            <div class="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+                <span id="status-dot" class="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+                <span id="status-text" class="text-[10px] uppercase font-bold text-slate-400">Connecting...</span>
             </div>
         </div>
-        <div class="flex items-center gap-3">
-            <input id="user-email" type="email" placeholder="Enter your email" class="bg-slate-800 text-sm px-3 py-1 rounded border border-slate-700 focus:outline-none focus:border-emerald-500">
-            <button id="share-session" class="bg-emerald-600 hover:bg-emerald-500 text-xs px-3 py-1 rounded font-bold transition">Copy Invite Link</button>
+        <div class="flex gap-3">
+            <button id="copy-link" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 px-4 rounded transition shadow-lg">
+                Invite Candidate
+            </button>
         </div>
     </header>
 
-    <main class="max-w-[1600px] mx-auto p-4 grid grid-cols-12 gap-4">
-        <!-- Sidebar: Schema -->
-        <aside class="col-span-12 lg:col-span-3 space-y-4">
-            <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                <h2 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z"></path></h2 >
-                <div id="schema-details" class="text-xs space-y-2 max-h-[60vh] overflow-y-auto">
-                    <!-- Injected by engines.js -->
+    <main class="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
+        
+        <!-- Sidebar -->
+        <aside class="col-span-12 lg:col-span-3">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Database Schema</h3>
+                <div id="schema-area" class="space-y-3">
+                    <!-- Schema items injected here -->
                 </div>
             </div>
         </aside>
 
-        <!-- Editor Area -->
-        <section class="col-span-12 lg:col-span-9 flex flex-col gap-4">
-            <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                <div class="flex bg-slate-100 border-b border-slate-200">
-                    <button id="tab-python" class="tab-btn active px-6 py-3 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-700 bg-white">Python 3.10</button>
-                    <button id="tab-sql" class="tab-btn px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:bg-slate-50">SQL (SQLite)</button>
+        <!-- Editor & Console -->
+        <div class="col-span-12 lg:col-span-9 flex flex-col gap-6">
+            
+            <!-- Editor Card -->
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                <div class="flex bg-slate-50 border-b border-slate-200">
+                    <button id="btn-python" class="px-6 py-3 text-sm font-bold tab-active transition">Python 3.10</button>
+                    <button id="btn-sql" class="px-6 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 transition">SQL Queries</button>
                 </div>
-
-                <div id="python-area" class="tab-content">
+                
+                <div id="python-container">
                     <textarea id="python-editor"></textarea>
-                    <div class="p-4 bg-slate-50 flex justify-between">
-                        <button id="run-python" class="bg-slate-900 text-white px-8 py-2 rounded-md font-bold hover:bg-slate-800 disabled:opacity-50">Initialize Python...</button>
+                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                        <button id="run-python" class="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 disabled:opacity-50 transition">Initialize Python...</button>
                     </div>
                 </div>
 
-                <div id="sql-area" class="tab-content hidden">
+                <div id="sql-container" class="hidden">
                     <textarea id="sql-editor"></textarea>
-                    <div class="p-4 bg-slate-50 flex justify-between">
-                        <button id="run-sql" class="bg-slate-900 text-white px-8 py-2 rounded-md font-bold hover:bg-slate-800">Execute Query</button>
+                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                        <button id="run-sql" class="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 transition">Run Query</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Output Console -->
-            <div class="bg-slate-900 rounded-lg shadow-inner p-4 min-h-[200px]">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-mono text-slate-500 uppercase tracking-tighter">Terminal Output</span>
-                    <button onclick="document.getElementById('console').textContent = ''" class="text-xs text-slate-500 hover:text-white">Clear</button>
+            <!-- Terminal Output -->
+            <div class="bg-slate-900 rounded-xl shadow-2xl p-6 min-h-[250px] border border-slate-800">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-mono text-slate-500 uppercase tracking-widest font-bold">Terminal Console</span>
+                    <button onclick="document.getElementById('console').textContent = ''" class="text-xs text-slate-500 hover:text-slate-300">Clear</button>
                 </div>
-                <pre id="console" class="font-mono text-emerald-400 text-sm whitespace-pre-wrap"></pre>
-                <div id="sql-table" class="mt-4 overflow-x-auto"></div>
+                <pre id="console" class="font-mono text-emerald-400 text-sm whitespace-pre-wrap overflow-y-auto max-h-[400px]"></pre>
+                <div id="sql-output" class="sql-table mt-4"></div>
             </div>
-        </section>
+        </div>
     </main>
 
-    <!-- External Engines -->
+    <!-- Dependencies -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-    
-    <!-- CodeMirror & Yjs Collaboration -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
 
-    <!-- Modular Application Logic -->
-    <script type="module" src="./js/ui.js"></script>
-    <script type="module" src="./js/engines.js"></script>
-    <script type="module" src="./js/editor.js"></script>
+    <!-- Collaborative Logic -->
+    <script type="module">
+        import * as Y from 'https://cdn.skypack.dev/yjs';
+        import { WebsocketProvider } from 'https://cdn.skypack.dev/y-websocket';
+        import { CodemirrorBinding } from 'https://cdn.skypack.dev/y-codemirror';
+
+        // 1. Session Room Logic
+        const hash = window.location.hash.replace('#', '');
+        const roomName = hash || `room-${Math.random().toString(36).substr(2, 9)}`;
+        if (!hash) window.location.hash = roomName;
+
+        const ydoc = new Y.Doc();
+        const provider = new WebsocketProvider('wss://demos.yjs.dev', roomName, ydoc);
+        const yPyText = ydoc.getText('python');
+        const ySqlText = ydoc.getText('sql');
+
+        // 2. Initialize Editors
+        const pyEditor = CodeMirror.fromTextArea(document.getElementById('python-editor'), {
+            mode: 'python', theme: 'dracula', lineNumbers: true, indentUnit: 4
+        });
+        const sqlEditor = CodeMirror.fromTextArea(document.getElementById('sql-editor'), {
+            mode: 'text/x-sql', theme: 'dracula', lineNumbers: true
+        });
+
+        // 3. Bind Collaboration
+        new CodemirrorBinding(yPyText, pyEditor, provider.awareness);
+        new CodemirrorBinding(ySqlText, sqlEditor, provider.awareness);
+
+        // UI Helpers
+        const log = (msg, err = false) => {
+            const c = document.getElementById('console');
+            c.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+            c.style.color = err ? '#f87171' : '#34d399';
+            c.scrollTop = c.scrollHeight;
+        };
+
+        provider.on('status', s => {
+            document.getElementById('status-dot').className = s.status === 'connected' ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-orange-500';
+            document.getElementById('status-text').innerText = s.status === 'connected' ? 'Live Sync Active' : 'Connecting...';
+        });
+
+        // 4. Engine Initialization
+        let pyodide, db;
+
+        async function initEngines() {
+            try {
+                pyodide = await loadPyodide();
+                document.getElementById('run-python').innerText = "Run Python";
+                document.getElementById('run-python').disabled = false;
+                log("Python Engine Loaded.");
+
+                const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}` });
+                db = new SQL.Database();
+                db.run("CREATE TABLE Users(id INT, name TEXT); INSERT INTO Users VALUES (1, 'Admin');");
+                log("SQL Engine Loaded.");
+                
+                document.getElementById('schema-area').innerHTML = `
+                    <div class="p-3 bg-slate-50 border rounded-lg text-xs font-mono">
+                        <b class="text-emerald-700">Users</b><br>id (INT), name (TEXT)
+                    </div>`;
+            } catch (e) { log(e.message, true); }
+        }
+
+        // 5. Execution Logic
+        document.getElementById('run-python').onclick = async () => {
+            log(">>> Executing Python...");
+            try {
+                pyodide.runPython(`
+                    import sys, io
+                    sys.stdout = io.String()
+                `);
+                await pyodide.runPythonAsync(pyEditor.getValue());
+                log(pyodide.runPython("sys.stdout.getvalue()") || "Success (No Output)");
+            } catch (e) { log(e.message, true); }
+        };
+
+        document.getElementById('run-sql').onclick = () => {
+            try {
+                const res = db.exec(sqlEditor.getValue());
+                if (res.length) renderTable(res[0]);
+                log("Query Successful.");
+            } catch (e) { log(e.message, true); }
+        };
+
+        function renderTable(data) {
+            let h = `<table><thead><tr>${data.columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+            h += `<tbody>${data.values.map(r => `<tr>${r.map(v => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+            document.getElementById('sql-output').innerHTML = h;
+        }
+
+        // 6. UI Interactions
+        document.getElementById('btn-python').onclick = () => {
+            document.getElementById('btn-python').className = 'px-6 py-3 text-sm font-bold tab-active transition';
+            document.getElementById('btn-sql').className = 'px-6 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 transition';
+            document.getElementById('python-container').classList.remove('hidden');
+            document.getElementById('sql-container').classList.add('hidden');
+            pyEditor.refresh();
+        };
+
+        document.getElementById('btn-sql').onclick = () => {
+            document.getElementById('btn-sql').className = 'px-6 py-3 text-sm font-bold tab-active transition';
+            document.getElementById('btn-python').className = 'px-6 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 transition';
+            document.getElementById('sql-container').classList.remove('hidden');
+            document.getElementById('python-container').classList.add('hidden');
+            sqlEditor.refresh();
+        };
+
+        document.getElementById('copy-link').onclick = () => {
+            navigator.clipboard.writeText(window.location.href);
+            alert("Link copied! Send this to the candidate.");
+        };
+
+        initEngines();
+    </script>
 </body>
 </html>
