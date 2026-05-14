@@ -3,79 +3,81 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>InterviewPad | Pro IDE</title>
-    
+    <title>InterviewPad | Professional IDE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css" />
     <link rel="stylesheet" href="./css/style.css">
 </head>
-<body>
+<body class="bg-slate-100">
 
-    <header class="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center gap-6">
-            <h1 class="text-xl font-bold">Interview<span class="text-emerald-400">Pad</span></h1>
-            <div class="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
-                <span id="status-dot" class="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
-                <span id="status-text" class="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Connecting...</span>
-            </div>
+    <!-- LOBBY / LANDING PAGE -->
+    <div id="lobby" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+            <h1 class="text-3xl font-bold text-slate-900 mb-2">Interview<span class="text-emerald-600">Pad</span></h1>
+            <p class="text-slate-500 mb-8" id="lobby-desc">Create a private collaborative coding room.</p>
+            
+            <input type="text" id="user-name" placeholder="Enter Your Name" class="w-full px-4 py-3 rounded-lg border border-slate-200 mb-4 focus:ring-2 focus:ring-emerald-500 outline-none">
+            
+            <button id="start-btn" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-500 transition-all shadow-lg">
+                Enter Interview Room
+            </button>
         </div>
-        <button id="copy-link" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all active:scale-95 shadow-lg">
-            Invite Candidate
-        </button>
-    </header>
+    </div>
 
-    <main class="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
-        <aside class="col-span-12 lg:col-span-3">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sticky top-24">
-                <h3 class="text-xs font-black text-slate-400 mb-4 uppercase tracking-widest">Database Schema</h3>
-                <div id="schema-area" class="space-y-3"></div>
-            </div>
-        </aside>
-
-        <div class="col-span-12 lg:col-span-9 space-y-6">
-            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                <div class="flex bg-slate-50 border-b border-slate-200">
-                    <button id="btn-python" class="px-8 py-4 text-sm font-bold tab-active">Python 3.10</button>
-                    <button id="btn-sql" class="px-8 py-4 text-sm font-bold text-slate-500 hover:bg-slate-100">SQL Editor</button>
+    <!-- MAIN APP (Hidden until joined) -->
+    <div id="app-content" class="invisible">
+        <header class="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
+            <div class="flex items-center gap-6">
+                <h1 class="text-xl font-bold">Interview<span class="text-emerald-400">Pad</span></h1>
+                <div class="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+                    <span id="status-dot" class="h-2 w-2 rounded-full bg-orange-500"></span>
+                    <span id="status-text" class="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Connecting...</span>
                 </div>
-                
-                <div id="python-container">
-                    <textarea id="python-editor"></textarea>
-                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+            </div>
+            <button id="copy-link" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all active:scale-95 shadow-lg">
+                Copy Candidate Link
+            </button>
+        </header>
+
+        <main class="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
+            <aside class="col-span-12 lg:col-span-3">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sticky top-24">
+                    <h3 class="text-xs font-black text-slate-400 mb-4 uppercase tracking-widest">Database Schema</h3>
+                    <div id="schema-area" class="space-y-3"></div>
+                </div>
+            </aside>
+
+            <div class="col-span-12 lg:col-span-9 space-y-6">
+                <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                    <div class="flex bg-slate-50 border-b border-slate-200">
+                        <button id="btn-python" class="px-8 py-4 text-sm font-bold tab-active">Python 3.10</button>
+                        <button id="btn-sql" class="px-8 py-4 text-sm font-bold text-slate-500 hover:bg-slate-100">SQL Editor</button>
+                    </div>
+                    <div id="python-container"><textarea id="python-editor"></textarea></div>
+                    <div id="sql-container" class="hidden"><textarea id="sql-editor"></textarea></div>
+                    
+                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-4">
                         <button id="run-python" class="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-800 disabled:opacity-50">Run Python</button>
+                        <button id="run-sql" class="hidden bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-800">Execute SQL</button>
                     </div>
                 </div>
 
-                <div id="sql-container" class="hidden">
-                    <textarea id="sql-editor"></textarea>
-                    <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
-                        <button id="run-sql" class="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-800">Execute SQL</button>
-                    </div>
+                <div class="bg-slate-900 rounded-xl shadow-2xl p-6 border border-slate-800">
+                    <pre id="console" class="font-mono text-emerald-400 text-sm whitespace-pre-wrap overflow-y-auto max-h-[300px]"></pre>
+                    <div id="sql-output" class="sql-table mt-4 overflow-x-auto"></div>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <div class="bg-slate-900 rounded-xl shadow-2xl p-6 border border-slate-800">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black">Output Terminal</span>
-                    <button id="clear-console" class="text-xs text-slate-500 hover:text-white">Clear Console</button>
-                </div>
-                <pre id="console" class="font-mono text-emerald-400 text-sm whitespace-pre-wrap overflow-y-auto max-h-[300px]"></pre>
-                <div id="sql-output" class="sql-table mt-4 overflow-x-auto"></div>
-            </div>
-        </div>
-    </main>
-
-    <!-- External Engines (Non-module) -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
-
-    <!-- Application Modules -->
+    
     <script type="module" src="./js/ui.js"></script>
-    <script type="module" src="./js/editor.js"></script>
-    <script type="module" src="./js/engines.js"></script>
 </body>
 </html>
