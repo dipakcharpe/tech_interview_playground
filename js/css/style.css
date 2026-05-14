@@ -1,0 +1,58 @@
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0f172a; /* slate-900 */
+}
+::-webkit-scrollbar-thumb {
+    background: #334155; /* slate-700 */
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569; /* slate-600 */
+}
+
+/* CodeMirror Adjustments */
+.CodeMirror {
+    height: 450px;
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Tab States */
+.tab-btn.active {
+    background-color: white;
+    border-bottom: 2px solid #10b981; /* emerald-500 */
+    color: #065f46; /* emerald-800 */
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Console Output Styling */
+#console {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* SQL Result Table */
+#sql-table table {
+    width: 100%;
+}
+
+#sql-table th {
+    color: #10b981; /* emerald-400 */
+}
+
+/* Transitions */
+.tab-btn {
+    transition: all 0.2s ease;
+}
+
+#run-python:active, #run-sql:active {
+    transform: scale(0.98);
+}

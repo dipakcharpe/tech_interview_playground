@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SQL & Python Interview Environment</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #e5e7eb; }
+
+        .CodeMirror {
+            font-size: 14px;
+            height: 300px;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+        }
+
+        #sql-results-output table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        #sql-results-output th, #sql-results-output td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        #sql-results-output th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .tab-content { min-height: 360px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div id="app" class="max-w-7xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10">
+
+        <header class="flex flex-col md:flex-row justify-between items-center pb-4 border-b border-gray-200 mb-6">
+            <h1 class="text-3xl font-extrabold text-gray-800">Tech Interview Playground</h1>
+            <div id="user-info" class="text-sm font-medium text-gray-500 mt-2 md:mt-0">
+                <span id="userIdDisplay" class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full shadow-sm hidden"></span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <div class="lg:col-span-1 bg-gray-50 p-6 rounded-lg shadow-inner">
+                <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clip-rule="evenodd" />
+                    </svg>Database Schema
+                </h2>
+                <div id="schema-details" class="space-y-4 text-sm text-gray-700 overflow-y-auto max-h-[70vh]">
+                    </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="flex border-b border-gray-200 mb-4">
+                    <button id="tab-python" data-target="python-tab" class="tab-button px-4 py-2 text-base font-semibold border-b-2 border-indigo-500 text-indigo-600 transition duration-150">Python Code</button>
+                    <button id="tab-sql" data-target="sql-tab" class="tab-button px-4 py-2 text-base font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition duration-150">SQL Query</button>
+                </div>
+
+                <div id="python-tab" class="tab-content" style="display:block">
+                    <textarea id="python-editor-textarea" style="display:none">
+def find_max(arr):
+    # Write your Python code here
+    return max(arr)
+
+# Example call
+print("The max value is:", find_max([10, 5, 20, 8]))
+                    </textarea>
+
+                    <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <button id="run-python-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 transition duration-150" disabled>
+                            <span id="python-btn-text">Initializing Python...</span>
+                        </button>
+                        <span id="python-loading-indicator" class="text-sm text-gray-500">Please wait...</span>
+                    </div>
+                </div>
+
+                <div id="sql-tab" class="tab-content" style="display:none">
+                    <textarea id="sql-editor-textarea" style="display:none">
+-- Sample Advance SQl query
+SELECT 
+    sid, 
+    cid, 
+    score,
+    -- Ranking on score partitioned by course (cid)
+    RANK() OVER (PARTITION BY cid ORDER BY score DESC) AS rank_score,
+    DENSE_RANK() OVER (PARTITION BY cid ORDER BY score DESC) AS dense_rank_score,
+    ROW_NUMBER() OVER (PARTITION BY cid ORDER BY score DESC) AS row_num
+FROM 
+    Enrollments
+ORDER BY 
+    cid, score DESC;
+                    </textarea>
+
+                    <div class="mt-4">
+                        <button id="run-sql-btn" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition duration-150">Run SQL Query</button>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h2 class="text-xl font-bold text-gray-700 mb-3">Output Console</h2>
+                    <div id="output-console" class="bg-gray-900 p-4 rounded-lg text-white text-sm whitespace-pre-wrap shadow-lg overflow-auto max-h-64">Awaiting Python engine initialization...</div>
+                    <div id="sql-results-output" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase modular SDK imports (Placeholder for persistence logic)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // ... (other firebase imports remain for compatibility)
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Globals for editors, python, & firebase
+        let pythonEditor = null;
+        let sqlEditor = null;
+        let pyodide = null; // Pyodide instance
+        let pythonOutput = ''; // Buffer for Python print statements
+        let dbInstance = null; // The sql.js DB object
+
+        let db = null;
+        let auth = null;
+        let userId = null;
+        let isAuthReady = false;
+        let isSqlReady = false;
+
+        // App-level configuration (Placeholder for deployment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-interview-app';
+        const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Utility: Firestore doc reference for session
+        const getSessionDocRef = (uid) => {
+            if (!db) throw new Error("Firestore not initialized");
+            const path = `artifacts/${appId}/users/${uid}/interview_session/latest_activity`;
+            return doc(db, path);
+        };
+
+        // --- Output helpers ---
+        const updateOutput = (content, isError = false) => {
+            const consoleEl = document.getElementById('output-console');
+            consoleEl.textContent = content;
+            consoleEl.className = isError
+                ? 'bg-red-800 p-4 rounded-lg text-white text-sm whitespace-pre-wrap shadow-lg overflow-auto max-h-64 mt-8'
+                : 'bg-gray-900 p-4 rounded-lg text-white text-sm whitespace-pre-wrap shadow-lg overflow-auto max-h-64 mt-8';
+            // clear SQL results only on non-select error or explicit clear
+            if (isError || !content.startsWith('Query executed')) {
+                document.getElementById('sql-results-output').innerHTML = '';
+            }
+        };
+
+        const updatePythonButtonState = (text, disabled) => {
+            const btn = document.getElementById('run-python-btn');
+            const textSpan = document.getElementById('python-btn-text');
+            const noteEl = document.getElementById('python-loading-indicator');
+            
+            if (textSpan) textSpan.textContent = text;
+            if (btn) btn.disabled = disabled;
+            if (noteEl) {
+                noteEl.textContent = disabled && text.includes('Loading') ? "Please wait, downloading Python modules..." : "Python code executes directly in the browser.";
+                noteEl.className = disabled ? "text-sm text-orange-500" : "text-sm text-gray-500";
+            }
+        };
+
+        const updateSqlButtonState = (text, disabled) => {
+            const btn = document.getElementById('run-sql-btn');
+            if (btn) {
+                btn.textContent = text;
+                btn.disabled = disabled;
+            }
+        };
+
+        const renderSqlTable = (data) => {
+            const outputEl = document.getElementById('sql-results-output');
+            outputEl.innerHTML = ''; // clear
+
+            if (!data || data.length === 0 || !data[0].columns || data[0].values.length === 0) {
+                updateOutput("Query executed successfully. (0 rows returned)", false);
+                return;
+            }
+
+            const { columns, values } = data[0];
+            let html = `<table><thead><tr>`;
+            columns.forEach(c => html += `<th>${c}</th>`);
+            html += `</tr></thead><tbody>`;
+            values.forEach(row => {
+                html += `<tr>`;
+                row.forEach(c => {
+                    // Use String(c ?? 'NULL') for proper rendering of nulls
+                    html += `<td>${String(c ?? 'NULL')}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            outputEl.innerHTML = html;
+            updateOutput(`Query executed successfully. (${values.length} rows returned)`, false);
+        };
+        
+        // --- Pyodide (Python Execution) Setup ---
+
+        // Function to capture Python's stdout and stderr
+        const capturePythonOutput = (msg) => {
+            pythonOutput += msg;
+        };
+
+        const initPyodide = async () => {
+            updatePythonButtonState("Loading Python engine...", true);
+            try {
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/",
+                });
+                pyodide.globals.set("py_print_func", capturePythonOutput);
+                
+                pyodide.runPython(`
+                    import sys
+                    class PyOutputRedirect:
+                        def write(self, s):
+                            py_print_func(s)
+                        def flush(self):
+                            pass
+                    sys.stdout = PyOutputRedirect()
+                    sys.stderr = PyOutputRedirect()
+                `);
+
+                updatePythonButtonState("Run Python Code", false);
+                console.log("Pyodide: Python interpreter ready.");
+            } catch (err) {
+                updateOutput(`Python Initialization Error: ${err.message}. Python execution disabled.`, true);
+                updatePythonButtonState("Python Failed to Load", true);
+                console.error("Pyodide init error:", err);
+            }
+        };
+
+        const runPythonCode = async (code) => {
+            if (!pyodide) {
+                updateOutput("Python environment is not ready. Please refresh the page if initialization failed.", true);
+                return;
+            }
+            pythonOutput = '';
+            updateOutput("Executing Python code...", false);
+            document.getElementById('sql-results-output').innerHTML = ''; // Clear SQL results
+
+            const btn = document.getElementById('run-python-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Executing...";
+
+            try {
+                const start = performance.now();
+                await pyodide.runPythonAsync(code);
+                const elapsed = Math.round(performance.now() - start);
+
+                const finalOutput = `Execution successful in ${elapsed}ms.\n\n--- Output ---\n${pythonOutput.trim()}`;
+                
+                updateOutput(finalOutput, false);
+            } catch (err) {
+                const errorMsg = pythonOutput.trim() + '\n' + String(err);
+                updateOutput(`Python Execution Error:\n\n${errorMsg.trim()}`, true);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        // --- CodeMirror Setup (The missing function!) ---
+        const initCodeEditors = () => {
+            pythonEditor = CodeMirror.fromTextArea(document.getElementById('python-editor-textarea'), {
+                mode: 'python',
+                lineNumbers: true,
+                matchBrackets: true
+            });
+
+            sqlEditor = CodeMirror.fromTextArea(document.getElementById('sql-editor-textarea'), {
+                mode: 'text/x-sql',
+                lineNumbers: true,
+                matchBrackets: true
+            });
+        };
+
+        // --- Database setup using sql.js (SQLite) ---
+        const setupDatabase = async () => {
+            updateSqlButtonState("Loading SQL engine...", true);
+            try {
+                // Initialize sql.js
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                });
+                dbInstance = new SQL.Database();
+                isSqlReady = true;
+
+                const schema = `
+                    DROP TABLE IF EXISTS Students;
+                    DROP TABLE IF EXISTS Courses;
+                    DROP TABLE IF EXISTS Enrollments;
+                    DROP TABLE IF EXISTS Attendance;
+
+                    CREATE TABLE Students (sid INTEGER PRIMARY KEY, name TEXT, dept TEXT, year INTEGER, cgpa REAL);
+                    CREATE TABLE Courses (cid INTEGER PRIMARY KEY, cname TEXT, dept TEXT, credits INTEGER);
+                    CREATE TABLE Enrollments (eid INTEGER PRIMARY KEY, sid INTEGER, cid INTEGER, semester TEXT, grade TEXT, score INTEGER);
+                    CREATE TABLE Attendance (aid INTEGER PRIMARY KEY, sid INTEGER, cid INTEGER, att_date TEXT, present INTEGER);
+                `;
+
+                const dataStatements = `
+                    INSERT INTO Students (sid, name, dept, year, cgpa) VALUES 
+                        (1, 'Anita', 'CSE', 2, 8.50), 
+                        (2, 'Bharat', 'ECE', 3, 7.80), 
+                        (3, 'Chitra', 'CSE', 4, 9.10), 
+                        (4, 'Deepak', 'ME', 1, 7.20), 
+                        (5, 'Esha', 'EE', 2, 8.90), 
+                        (6, 'Farhan', 'CSE', 3, 6.80);
+                    
+                    INSERT INTO Courses (cid, cname, dept, credits) VALUES 
+                        (1, 'DBMS', 'CSE', 4), 
+                        (2, 'Data Structures', 'CSE', 3), 
+                        (3, 'Circuits', 'ECE', 4), 
+                        (4, 'Thermodynamics', 'ME', 3), 
+                        (5, 'Signals', 'ECE', 3);
+                    
+                    INSERT INTO Enrollments (eid, sid, cid, semester, grade, score) VALUES 
+                        (1, 1, 1, '2024-ODD', 'A', 90), 
+                        (2, 1, 2, '2024-ODD', 'B', 80), 
+                        (3, 2, 3, '2024-ODD', 'B', 85), 
+                        (4, 2, 5, '2024-ODD', 'A', 95), 
+                        (5, 3, 1, '2024-ODD', 'A+', 100), 
+                        (6, 3, 2, '2024-ODD', 'A', 90), 
+                        (7, 4, 4, '2024-ODD', 'C', 70), 
+                        (8, 5, 3, '2024-ODD', 'A', 95), 
+                        (9, 6, 1, '2024-ODD', 'B', 85), 
+                        (10, 6, 2, '2024-ODD', 'C', 75), 
+                        (11, 1, 3, '2024-ODD', 'B+', 85), 
+                        (12, 5, 5, '2024-ODD', 'A+', 95),
+                        (13, 1, 1, '2024-EVEN', 'A', 90); -- Duplicate score for testing RANK/DENSE_RANK
+                    
+                    INSERT INTO Attendance (aid, sid, cid, att_date, present) VALUES 
+                        (1, 1, 1, '2024-08-01', 1), 
+                        (2, 1, 1, '2024-08-02', 1), 
+                        (3, 1, 1, '2024-08-03', 0), 
+                        (4, 3, 1, '2024-08-01', 1), 
+                        (5, 3, 1, '2024-08-02', 0), 
+                        (6, 3, 1, '2024-08-03', 1), 
+                        (7, 6, 1, '2024-08-01', 0), 
+                        (8, 6, 1, '2024-08-02', 0), 
+                        (9, 6, 1, '2024-08-03', 0);
+                `;
+
+                // Execute all schema and data statements at once
+                dbInstance.exec(schema + dataStatements);
+                
+                updateSqlButtonState("Run SQL Query", false);
+                console.log("sql.js: SQLite DB initialized.");
+            } catch (err) {
+                console.error("sql.js init error:", err);
+                updateOutput("SQL Error: Failed to initialize database (sql.js).", true);
+                updateSqlButtonState("SQL Failed to Load", true);
+            }
+        };
+
+        // --- SQL Query Execution (Updated for sql.js) ---
+        const runSqlQuery = (query) => {
+            if (!isSqlReady) {
+                updateOutput("SQL engine is not ready. Please wait or refresh the page.", true);
+                return;
+            }
+
+            try {
+                const start = performance.now();
+                
+                // sql.js exec returns an array of result objects for SELECT queries, 
+                // or modifies the DB state for DDL/DML.
+                const results = dbInstance.exec(query);
+                
+                const elapsed = Math.round(performance.now() - start);
+
+                if (results.length > 0) {
+                    // SELECT query: render the result
+                    renderSqlTable(results);
+                } else {
+                    // DML/DDL query (INSERT, UPDATE, DELETE, CREATE, etc.): check for changes
+                    const rowsAffected = dbInstance.getRowsModified();
+                    updateOutput(`Query executed successfully in ${elapsed}ms. ${rowsAffected} rows affected.`, false);
+                    document.getElementById('sql-results-output').innerHTML = ''; // Clear old results
+                }
+            } catch (err) {
+                // sql.js throws a formal Error object on failure
+                updateOutput(`SQL Execution Error: ${err.message}`, true);
+            }
+        };
+
+        // --- UI handlers ---
+        const wireUiHandlers = () => {
+            // Tab switching logic
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                    document.querySelectorAll('.tab-button').forEach(b => {
+                        b.classList.remove('border-indigo-500', 'text-indigo-600');
+                        b.classList.add('border-transparent', 'text-gray-500');
+                    });
+
+                    document.getElementById(targetId).style.display = 'block';
+                    button.classList.add('border-indigo-500', 'text-indigo-600');
+                    button.classList.remove('border-transparent', 'text-gray-500');
+
+                    // Refresh CodeMirror when tab is switched to ensure proper layout
+                    if (pythonEditor && targetId === 'python-tab') pythonEditor.refresh();
+                    if (sqlEditor && targetId === 'sql-tab') sqlEditor.refresh();
+                });
+            });
+
+            // Run Python (Real Execution via Pyodide)
+            document.getElementById('run-python-btn').addEventListener('click', () => {
+                const code = pythonEditor ? pythonEditor.getValue() : document.getElementById('python-editor-textarea').value;
+                runPythonCode(code);
+            });
+
+            // Run SQL
+            document.getElementById('run-sql-btn').addEventListener('click', () => {
+                const query = sqlEditor ? sqlEditor.getValue().trim() : document.getElementById('sql-editor-textarea').value.trim();
+                if (!query) {
+                    updateOutput("Please enter an SQL query to execute.", true);
+                    return;
+                }
+                runSqlQuery(query);
+            });
+        };
+
+        // Inject schema HTML 
+        const injectSchema = () => {
+            const schemaHtml = `
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Students</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        sid (INT, PK), name (TEXT), dept (TEXT), year (INT), cgpa (REAL)
+                    </code>
+                </div>
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Courses</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        cid (INT, PK), cname (TEXT), dept (TEXT), credits (INT)
+                    </code>
+                </div>
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Enrollments</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        eid (INT, PK), sid (INT, FK), cid (INT, FK), semester (TEXT), grade (TEXT), <span class="text-red-600">score (INT)</span>
+                    </code>
+                </div>
+                <div class="p-3 border border-gray-200 rounded-lg bg-white">
+                    <p class="font-bold text-indigo-700">Attendance</p>
+                    <code class="block mt-1 bg-gray-100 p-2 rounded text-xs text-gray-700">
+                        aid (INT, PK), sid (INT, FK), cid (INT, FK), att_date (TEXT), present (INTEGER)
+                    </code>
+                </div>
+                <p class="mt-4 text-xs italic text-gray-400">Sample data for all tables has been pre-loaded.</p>
+            `;
+            document.getElementById('schema-details').innerHTML = schemaHtml;
+        };
+
+        // --- Application startup sequence ---
+        (async function startApp() {
+            try {
+                // 1. Initial UI and Database setup
+                injectSchema();
+                await setupDatabase(); 
+                
+                // 2. Load Python Interpreter
+                await initPyodide();
+
+                // 3. Initialize Editors and UI handlers
+                initCodeEditors();
+                wireUiHandlers();
+
+                // 4. Initialize Firebase (Persistence logic is omitted/placeholder)
+                // const fb = await initFirebase(); 
+                // if (fb && fb.enabled) {
+                //     setupPersistence();
+                //     saveCodeToFirestore();
+                // } 
+
+            } catch (err) {
+                console.error("Startup error:", err);
+                updateOutput("Application startup error: " + err.message, true);
+            }
+        })();
+
+    </script>
+</body>
+</html>
